@@ -34,7 +34,6 @@ import com.example.bjb.myapplication.devicecommand.NewChangshangMethod;
 import com.example.bjb.myapplication.entity.DefaultPlayBean;
 import com.example.bjb.myapplication.entity.NewPicture;
 import com.example.bjb.myapplication.entity.NewVideo;
-import com.example.bjb.myapplication.entity.Picture;
 import com.example.bjb.myapplication.httputils.Ok;
 import com.example.bjb.myapplication.httputils.callback.CallBack;
 import com.example.bjb.myapplication.httputils.callback.FileCallBack;
@@ -55,6 +54,7 @@ import com.example.bjb.myapplication.view.MyImagview;
 import com.example.bjb.myapplication.view.MyMediaView;
 import com.example.bjb.myapplication.view.NewBannerView;
 import com.example.bjb.myapplication.view.NewVideoPlayer;
+import com.example.bjb.myapplication.view.WebShower;
 import com.example.bjb.myapplication.view.callbacks.ViewerCallback;
 import com.example.bjb.myapplication.view.widget.SimpleDialog;
 import com.google.gson.Gson;
@@ -111,6 +111,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
     private NewVideoPlayer newVideoPlayer;
     private MyMediaView myMediaView;
     private NewBannerView bannerView;
+    private WebShower webShower;
 
     private List<String> liandongIps = new ArrayList<String>();
     private List<String> playPaths = new ArrayList<>();
@@ -329,7 +330,12 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     materialIds = deviceInstructionListBeans.get(i).getMaterialIds();
                                     Log.e(TAG, "轮播素材：" + materialIds);
                                     sourceType = deviceInstructionListBeans.get(i).getType();
-                                    checkPlayList(materialIds, sourceType);
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            checkPlayList(materialIds, sourceType);
+                                        }
+                                    });
                                     nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
                                     //停止轮播
                                 } else if ("A006-13".equals(instructionCode)) {
@@ -673,6 +679,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         newVideoPlayer = null;
         myMediaView = null;
         bannerView = null;
+        webShower = null;
         handleViewers.clear();
 
         for (int i = 0; i < paths.size(); i++) {
@@ -738,6 +745,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         newVideoPlayer = null;
         myMediaView = null;
         bannerView = null;
+        webShower = null;
         handleViewers.clear();
 
 
@@ -796,6 +804,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         newVideoPlayer = null;
         myMediaView = null;
         bannerView = null;
+        webShower = null;
         handleViewers.clear();
 
         //布局
@@ -841,6 +850,53 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
     }
 
+
+    private void playWebItem(String url){
+        for (ViewerCallback v : handleViewers) {
+            v.viewerOnPause(true);
+            v.viewerOnDestroy();
+        }
+
+        newVideoPlayer = null;
+        myMediaView = null;
+        bannerView = null;
+        webShower = null;
+        handleViewers.clear();
+
+        //布局
+        final RelativeLayout layout = new RelativeLayout(this);
+        layout.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        webShower = new WebShower(NettyActivity.this,url);
+
+        RelativeLayout.LayoutParams lp1 = new RelativeLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        lp1.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+        lp1.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+        lp1.setMargins(0, 0, 0, 0);
+
+        layout.addView(webShower, lp1);
+        handleViewers.add(webShower);
+
+
+        for (ViewerCallback v : handleViewers) {
+            v.viewerOnResume();
+        }
+
+        // 替换布局
+        RelativeLayout oldLayout = this.rootLayout;
+        this.rootLayout = layout;
+        rl_content_main.addView(layout);
+        rl_content_main.removeView(oldLayout);
+        oldLayouts.add(new WeakReference<RelativeLayout>(oldLayout));
+
+
+        for (WeakReference<RelativeLayout> ref : oldLayouts) {
+            if (ref.get() != null) {
+                Log.e("ds", "--- oldLayout:" + ref.get());
+            }
+        }
+    }
     @Override
     protected void onPause() {
         for (ViewerCallback v : handleViewers) {
@@ -948,7 +1004,11 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                         }
                     });
                 }
-
+                if (count > playPaths.size()) {
+                    isChecking = true;
+                } else {
+                    isChecking = false;
+                }
             } else if ("1".equals(type)) {
 
                 for (int i = 0; i < playIds.length; i++) {
@@ -974,7 +1034,11 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                         }
                     });
                 }
-
+                if (count > playPaths.size()) {
+                    isChecking = true;
+                } else {
+                    isChecking = false;
+                }
             } else {
                 for (int j = 0; j < materialListBeans.size(); j++) {
                     try {
@@ -982,7 +1046,10 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                         if (playIds[0].equals(materialListBeans.get(j).getId() + "")) {
                             if (SDCardFileUtils.isFileExists(SDCardFileUtils.getWebviewRootDir(), materialListBeans.get(j).getName())) {
                                 //读文件播放
-                                Log.e("testlog","播放网页");
+                                File file = new File(SDCardFileUtils.getWebviewRootDir(), materialListBeans.get(j).getName());
+                                String url = FileUtils.readTxtFile(file);
+                                Log.e(TAG,"播放网页地址为:"+ url);
+                                playWebItem(url);
                             }
                         }
                     } catch (Exception e) {
@@ -992,13 +1059,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
             }
 
 
-            if (count > playPaths.size()) {
 
-                isChecking = true;
-            } else {
-                isChecking = false;
-
-            }
 
         }
 
