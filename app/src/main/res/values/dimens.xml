@@ -1,0 +1,13 @@
+<resources>
+
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="login_edit_width">300dp</dimen>
+
+    <dimen name="login_edit_left_margin">15dp</dimen>
+    <dimen name="login_edit_left_padding">8dp</dimen>
+
+    <dimen name="login_rl_top_margin">15dp</dimen>
+
+    <dimen name="login_edit_text_size">15sp</dimen>
+    <dimen name="login_btn_text_size">12sp</dimen>
+</resources>

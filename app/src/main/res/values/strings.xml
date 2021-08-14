@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Player</string>
+
+    <string name="ip_edt">please enter ip address</string>
+    <string name="username_edt">please enter username</string>
+    <string name="password_edt">please enter password</string>
+    <string name="terminalname_edt">please enter terminal name</string>
+    <string name="lianping_mode">Lianping mode</string>
+    <string name="content_mode">Content mode</string>
+    <string name="login">Login</string>
+
+
+    <string name="mode">Mode</string>
+    <string name="terminal_name">Terminal name</string>
+    <string name="ip_address">IP address</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+
+</resources>

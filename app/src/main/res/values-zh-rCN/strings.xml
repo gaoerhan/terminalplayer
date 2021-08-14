@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">播放器</string>
+
+    <string name="ip_edt">请输入ip地址</string>
+    <string name="username_edt">请输入用户名</string>
+    <string name="password_edt">请输入密码</string>
+    <string name="terminalname_edt">请输入终端名称</string>
+    <string name="lianping_mode">联屏模式</string>
+    <string name="content_mode">内容模式</string>
+    <string name="login">登录</string>
+
+
+    <string name="mode">模式</string>
+    <string name="terminal_name">终端名称</string>
+    <string name="ip_address">ip地址</string>
+    <string name="username">用户名</string>
+    <string name="password">密码</string>
+</resources>

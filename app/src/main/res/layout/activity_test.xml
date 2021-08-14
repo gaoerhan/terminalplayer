@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".activity.TestActivity">
+
+
+    <LinearLayout
+        android:layout_weight="1"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        >
+        <com.upyun.upplayer.widget.UpVideoView
+            android:layout_weight="1"
+            android:id="@+id/upvideoviewlefttop"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"/>
+
+        <com.upyun.upplayer.widget.UpVideoView
+            android:layout_weight="1"
+            android:id="@+id/upvideoviewrighttop"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_weight="1"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        >
+        <com.upyun.upplayer.widget.UpVideoView
+            android:layout_weight="1"
+            android:id="@+id/upvideoviewleftbottom"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"/>
+
+        <com.upyun.upplayer.widget.UpVideoView
+            android:layout_weight="1"
+            android:id="@+id/upvideoviewrightbottom"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+
+        android:layout_alignParentBottom="true"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        >
+
+        <Button
+            android:id="@+id/btn_stop"
+            android:text="暂停"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            />
+
+        <Button
+
+            android:id="@+id/btn_seekto"
+            android:text="跳转"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            />
+
+        <Button
+
+            android:id="@+id/btn_seektoguding"
+            android:text="跳转固定进度"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            />
+    </LinearLayout>
+
+
+
+</LinearLayout>
