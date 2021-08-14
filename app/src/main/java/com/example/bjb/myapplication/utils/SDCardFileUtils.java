@@ -93,7 +93,15 @@ public class SDCardFileUtils {
         return cacheDir.getPath();
 
     }
+    //获取视频路径
+    public static String getWebviewRootDir() {
 
+        File cacheDir = new File(getRootFile().getPath() + File.separator + PLAYER_ROOT_DIR + File.separator + "web");
+        if (!cacheDir.exists())
+            cacheDir.mkdir();
+        return cacheDir.getPath();
+
+    }
 
     //获取图片路径
 

@@ -3,6 +3,7 @@
     package="com.example.bjb.myapplication">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REORDER_TASKS" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -22,14 +23,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity android:name=".activity.TestActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
-        <activity android:name=".activity.MainActivity"></activity>
-        <activity android:name=".activity.SocketActivity" />
 
         <service
             android:name=".socket.SocketService"
@@ -40,16 +34,15 @@
             android:enabled="true"
             android:exported="true" />
 
-        <activity android:name=".activity.TestDownloadActivity"></activity>
         <activity android:name=".activity.NettyActivity" />
         <activity
             android:name=".activity.StartActivity"
             android:windowSoftInputMode="adjustUnspecified|stateHidden|adjustPan">
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.MAIN" />-->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
-<!--                <category android:name="android.intent.category.LAUNCHER" />-->
-<!--            </intent-filter>-->
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
         <activity android:name=".activity.LiandongActivity" />
 

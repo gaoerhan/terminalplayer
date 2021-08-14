@@ -52,6 +52,7 @@ public class NewBannerView extends RelativeLayout implements ViewerCallback {
     private int mItemCount;
     private int mInterval;
 
+    private volatile boolean isCircle = true;
     private FixedSpeedScroller mScroller;
     public interface OnBannerItemClickListener {
         void onClick(int position);
@@ -110,6 +111,7 @@ public class NewBannerView extends RelativeLayout implements ViewerCallback {
         mRunnable = new Runnable() {
             @Override
             public void run() {
+
                 if(mViewPager.getCurrentItem() >= 600*mItemCount-1){
                     mViewPager.setCurrentItem(20*mItemCount);
                 }else {
@@ -338,4 +340,11 @@ public class NewBannerView extends RelativeLayout implements ViewerCallback {
 
     }
 
+    public void setCircle(){
+        isCircle = true;
+    }
+
+    public void stopCircle(){
+        isCircle = false;
+    }
 }

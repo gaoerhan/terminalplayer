@@ -5,6 +5,24 @@ public class CommandResponse {
     private int command;
     private int instructionId;
     private String result;
+    private long materialId;
+    private String downloadProgress;
+
+    public long getMaterialId() {
+        return materialId;
+    }
+
+    public void setMaterialId(long materialId) {
+        this.materialId = materialId;
+    }
+
+    public String getDownloadProgress() {
+        return downloadProgress;
+    }
+
+    public void setDownloadProgress(String downloadProgress) {
+        this.downloadProgress = downloadProgress;
+    }
 
     public int getCommand() {
         return command;
@@ -36,6 +54,8 @@ public class CommandResponse {
                 "command=" + command +
                 ", instructionId=" + instructionId +
                 ", result='" + result + '\'' +
+                ", materialId=" + materialId +
+                ", downloadProgress='" + downloadProgress + '\'' +
                 '}';
     }
 }

@@ -213,6 +213,17 @@ public class NettyService extends Service {
         String content = new Gson().toJson(commandResponse);
         IODisposeHandler.channel.writeAndFlush(new MyProtocolBean(6, content.getBytes().length, content));
     }
+    //发送指令响应 result 4 0%    5 100%
+    public void sendDowloadResponse(int instructionId,long materialId ,String downloadProgress,String result) {
+        CommandResponse commandResponse = new CommandResponse();
+        commandResponse.setCommand(6);
+        commandResponse.setInstructionId(instructionId);
+        commandResponse.setMaterialId(materialId);
+        commandResponse.setDownloadProgress(downloadProgress);
+        commandResponse.setResult(result);
+        String content = new Gson().toJson(commandResponse);
+        IODisposeHandler.channel.writeAndFlush(new MyProtocolBean(6, content.getBytes().length, content));
+    }
 
     //发送联屏指令响应
     public void sendLPCommandResponse( int screenDeviceId,int screenDeviceStatus) {
@@ -239,7 +250,6 @@ public class NettyService extends Service {
         heartbeatRequest.setToken(SPUtil.getInstance().getString("token",""));
         heartbeatRequest.setMachine_code(HardwareUtils.getMachineCode());
         heartbeatRequest.setRam(HardwareUtils.getMemoryUsage());
-        Log.e(TAG,"磁盘占用"  + HardwareUtils.getAvailableSize());
         String content = new Gson().toJson(heartbeatRequest);
         IODisposeHandler.channel.writeAndFlush(new MyProtocolBean(7, content.getBytes().length, content));
     }

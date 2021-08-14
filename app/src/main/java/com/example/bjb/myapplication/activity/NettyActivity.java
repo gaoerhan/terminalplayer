@@ -1,20 +1,17 @@
 package com.example.bjb.myapplication.activity;
 
 import android.app.Activity;
-import android.app.VoiceInteractor;
-import android.content.BroadcastReceiver;
+import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Bundle;
 import android.os.Looper;
 import android.os.Message;
-import android.service.voice.VoiceInteractionSession;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -22,7 +19,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.bjb.myapplication.MyApplication;
@@ -35,14 +31,15 @@ import com.example.bjb.myapplication.devicecommand.ADVMethod;
 import com.example.bjb.myapplication.devicecommand.FactoryCategoryUtils;
 import com.example.bjb.myapplication.devicecommand.MyShixinMethod;
 import com.example.bjb.myapplication.devicecommand.NewChangshangMethod;
+import com.example.bjb.myapplication.entity.DefaultPlayBean;
 import com.example.bjb.myapplication.entity.NewPicture;
 import com.example.bjb.myapplication.entity.NewVideo;
+import com.example.bjb.myapplication.entity.Picture;
 import com.example.bjb.myapplication.httputils.Ok;
 import com.example.bjb.myapplication.httputils.callback.CallBack;
 import com.example.bjb.myapplication.httputils.callback.FileCallBack;
 import com.example.bjb.myapplication.httputils.callback.JsonCallBack;
 import com.example.bjb.myapplication.socket.NettyService;
-import com.example.bjb.myapplication.socket.SocketService;
 import com.example.bjb.myapplication.socket.entity.CommandReceive;
 import com.example.bjb.myapplication.socket.entity.HeartbeatResponse;
 import com.example.bjb.myapplication.socket.entity.LiandongReceive;
@@ -62,9 +59,6 @@ import com.example.bjb.myapplication.view.callbacks.ViewerCallback;
 import com.example.bjb.myapplication.view.widget.SimpleDialog;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.yaoxiaowen.download.DownloadConstant;
-import com.yaoxiaowen.download.DownloadHelper;
-import com.yaoxiaowen.download.FileInfo;
 
 import java.io.File;
 import java.io.IOException;
@@ -105,6 +99,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
     private static String mySelfInnerIp;
     private String sourceType;
 
+    private volatile boolean isFirstPlayDefault = true;
 
     private RelativeLayout rootLayout;
     private RelativeLayout rl_content_main;
@@ -115,7 +110,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
     private NewVideoPlayer newVideoPlayer;
     private MyMediaView myMediaView;
-
+    private NewBannerView bannerView;
 
     private List<String> liandongIps = new ArrayList<String>();
     private List<String> playPaths = new ArrayList<>();
@@ -142,11 +137,11 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
             switch (msg.what) {
                 case 1:
                     String progress = (String) msg.obj;
-                    if (myMediaView !=  null&& progress != null) {
+                    if (myMediaView != null && progress != null) {
                         if (myMediaView.isPlaying()) {
                             int current = myMediaView.getCurrentPosition();
 //                            if(Math.abs(Integer.parseInt(progress) - current) > 30){
-                                myMediaView.seekTo(Integer.parseInt(progress));
+                            myMediaView.seekTo(Integer.parseInt(progress));
 //                            }
 
 //                            myMediaView.seekTo(99333);
@@ -168,7 +163,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         rl_content_main = findViewById(R.id.rl_content_main);
         fixedThreadPool = Executors.newFixedThreadPool(4);
 
-        isLianping = Boolean.parseBoolean(SPUtil.getInstance().getString("isLianping","false"));
+        isLianping = Boolean.parseBoolean(SPUtil.getInstance().getString("isLianping", "false"));
         //测试使用，正常界面输入存储
         final Intent intent = getIntent();
         SPUtil.getInstance().saveString("username", intent.getStringExtra("username"));
@@ -176,7 +171,6 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         SPUtil.getInstance().saveString("terminalname", intent.getStringExtra("terminalname"));
 //        SPUtil.getInstance().saveString("ip", "172.16.30.231:8000");
         SPUtil.getInstance().saveString("ip", intent.getStringExtra("ip"));
-
 
 
         heartTimer = new Timer();
@@ -278,6 +272,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     //截屏
                                 } else if ("A006-06".equals(instructionCode)) {
                                     screenShot("A006-06", deviceInstructionListBeans.get(i).getInstructionId());
+                                    nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
                                     //打开屏幕
                                 } else if ("A006-07".equals(instructionCode)) {
                                     MyApplication.getInstance().setScreenOn();
@@ -288,7 +283,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
                                 } else if ("A006-09".equals(instructionCode)) {
                                     try {
-                                        getMaterialList();
+                                        getMaterialList(deviceInstructionListBeans.get(i).getInstructionId());
                                     } catch (Exception e) {
                                         e.printStackTrace();
                                     }
@@ -303,10 +298,11 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     //播放
                                 } else if ("A006-04".equals(instructionCode)) {
 
+
                                     if (myMediaView != null)
                                         myMediaView.start();
 
-                                    if(newVideoPlayer != null)
+                                    if (newVideoPlayer != null)
                                         newVideoPlayer.startPlay();
                                     nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
                                     //暂停播放
@@ -314,13 +310,13 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     if (myMediaView != null)
                                         myMediaView.pause();
 
-                                    if(newVideoPlayer != null)
+                                    if (newVideoPlayer != null)
                                         newVideoPlayer.pausePlay();
                                     nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
                                     //开始轮播
                                 } else if ("A006-12".equals(instructionCode)) {
-
-                                    if(newVideoPlayer != null)
+                                    if(!isFront)movetoFront();
+                                    if (newVideoPlayer != null)
                                         newVideoPlayer.setCircleplay();
 //                                    if (isLianping) {
 //
@@ -329,7 +325,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 //                                        sendBroad(message, myMainIp);
 //                                    }
                                     isLianping = false;
-                                    SPUtil.getInstance().saveString("isLianping","false");
+                                    SPUtil.getInstance().saveString("isLianping", "false");
                                     materialIds = deviceInstructionListBeans.get(i).getMaterialIds();
                                     Log.e(TAG, "轮播素材：" + materialIds);
                                     sourceType = deviceInstructionListBeans.get(i).getType();
@@ -337,8 +333,13 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
                                     //停止轮播
                                 } else if ("A006-13".equals(instructionCode)) {
-                                    if(newVideoPlayer != null)
+                                    if (newVideoPlayer != null)
                                         newVideoPlayer.stopCircleplay();
+                                    //图片停止轮播
+                                    if(bannerView != null){
+                                        bannerView.stopCircle();
+                                    }
+
                                     nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
                                     //视频进度调节
                                 } else if ("A006-14".equals(instructionCode)) {
@@ -348,13 +349,12 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
                                         int pg = Integer.parseInt(progress);
 
-
                                         if (newVideoPlayer != null) {
                                             int total = newVideoPlayer.getTotalProgress();
                                             newVideoPlayer.seekTo((total * pg) / 100);
                                         }
 
-                                        if(myMediaView != null){
+                                        if (myMediaView != null) {
                                             int total = myMediaView.getDuration();
                                             myMediaView.seekTo((total * pg) / 100);
                                         }
@@ -364,18 +364,27 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
                                     //关闭播放
                                 } else if ("A006-15".equals(instructionCode)) {
+                                    if (myMediaView != null)
+                                        myMediaView.pause();
 
+                                    if (newVideoPlayer != null)
+                                        newVideoPlayer.pausePlay();
 
-                                }else if ("A006-19".equals(instructionCode)) {
+                                    if(bannerView != null){
+                                        bannerView.stopCircle();
+                                    }
+                                    moveToBack();
+
+                                } else if ("A006-19".equals(instructionCode)) {
 
                                     if (newVideoPlayer != null) {
-                                        if(!newVideoPlayer.isPlaying()){
+                                        if (!newVideoPlayer.isPlaying()) {
                                             newVideoPlayer.startPlay();
                                         }
                                     }
 
                                     if (myMediaView != null) {
-                                        if(!myMediaView.isPlaying()){
+                                        if (!myMediaView.isPlaying()) {
                                             myMediaView.start();
                                         }
                                     }
@@ -385,12 +394,12 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                 } else if ("A006-20".equals(instructionCode)) {
 
                                     if (newVideoPlayer != null) {
-                                        if(newVideoPlayer.isPlaying()){
+                                        if (newVideoPlayer.isPlaying()) {
                                             newVideoPlayer.pausePlay();
                                         }
                                     }
                                     if (myMediaView != null) {
-                                        if(myMediaView.isPlaying()){
+                                        if (myMediaView.isPlaying()) {
                                             myMediaView.pause();
                                         }
                                     }
@@ -398,18 +407,22 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
 
                                     //更新同步组指令 A006-19播放/A006-20暂停/A006-22停止 / type = 9素材下发
+                                } else if ("A006-21".equals(instructionCode)) {
+                                    materialIds = deviceInstructionListBeans.get(i).getValue();
+                                    Log.e(TAG, "删除素材：" + materialIds);
+                                    deleteMetiarial(deviceInstructionListBeans.get(i).getInstructionId(), materialIds);
                                 } else if ("A006-22".equals(instructionCode)) {
 
                                     if (myMediaView != null) {
-                                        if(myMediaView.isPlaying()){
+                                        if (myMediaView.isPlaying()) {
                                             myMediaView.pause();
                                         }
                                     }
 
                                     String original = SPUtil.getInstance().getString("liandongVideo", "");
-                                    if(!TextUtils.isEmpty(original)){
+                                    if (!TextUtils.isEmpty(original)) {
                                         File file1 = new File(SDCardFileUtils.getLiandongRootDir() + File.separator + original);
-                                        if(file1!=null && file1.exists()){
+                                        if (file1 != null && file1.exists()) {
                                             file1.delete();
                                         }
                                         SPUtil.getInstance().saveString("liandongVideo", "");
@@ -447,7 +460,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                             final LiandongReceive liandongReceive = new Gson().fromJson(msg.getContent(), LiandongReceive.class);
                             liandongIps = liandongReceive.getDevices();
                             isLianping = true;
-                            SPUtil.getInstance().saveString("isLianping","true");
+                            SPUtil.getInstance().saveString("isLianping", "true");
                             if (SDCardFileUtils.isFileExists(SDCardFileUtils.getLiandongRootDir(), liandongReceive.getName())) {
                                 currentLPVideoName = liandongReceive.getName();
                                 SPUtil.getInstance().saveString("liandongVideo", currentLPVideoName);
@@ -456,7 +469,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        nettyService.sendLPCommandResponse(liandongReceive.getScreenDeviceId(),3);
+                                        nettyService.sendLPCommandResponse(liandongReceive.getScreenDeviceId(), 3);
                                         playLianVideo(path);
                                     }
                                 });
@@ -479,7 +492,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     @Override
                                     public void run() {
                                         liandongDownload(downurl, SDCardFileUtils.getLiandongRootDir(),
-                                                "downloading" + liandongReceive.getName(),liandongReceive.getScreenDeviceId());
+                                                "downloading" + liandongReceive.getName(), liandongReceive.getScreenDeviceId());
                                     }
                                 });
                             }
@@ -515,14 +528,20 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
         Intent intent = new Intent(this, NettyService.class);
 
-
         String ip = SPUtil.getInstance().getString("ip", "");
         if (!TextUtils.isEmpty(ip)) {
-            String[] srings = ip.split(":");
-            intent.putExtra("ip", srings[0]);
-//        intent.putExtra("ip", "172.16.30.231");
-            intent.putExtra("port", srings[1]);
-            this.bindService(intent, serviceConnection, BIND_AUTO_CREATE);
+            if (ip.contains(":")) {
+                String[] srings = ip.split(":");
+                if (!TextUtils.isEmpty(srings[1])) {
+                    intent.putExtra("ip", srings[0]);
+                    intent.putExtra("port", srings[1]);
+                    this.bindService(intent, serviceConnection, BIND_AUTO_CREATE);
+                } else {
+                    toastMsg("端口号为空");
+                }
+            } else {
+                toastMsg("端口号为空");
+            }
         } else {
             toastMsg("ip地址为空");
         }
@@ -653,6 +672,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         }
         newVideoPlayer = null;
         myMediaView = null;
+        bannerView = null;
         handleViewers.clear();
 
         for (int i = 0; i < paths.size(); i++) {
@@ -717,6 +737,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         }
         newVideoPlayer = null;
         myMediaView = null;
+        bannerView = null;
         handleViewers.clear();
 
 
@@ -725,7 +746,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         layout.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
 
-        myMediaView = new MyMediaView(this, path, widthPixels, heightPixels,0,0);
+        myMediaView = new MyMediaView(this, path, widthPixels, heightPixels, 0, 0);
 
         RelativeLayout.LayoutParams lp1 = new RelativeLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
@@ -757,7 +778,6 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
     }
 
 
-
     private void playImageItem(List<String> paths) {
 
         for (ViewerCallback v : handleViewers) {
@@ -773,6 +793,9 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
             Log.e(TAG, "图片路径" + paths.get(i));
         }
+        newVideoPlayer = null;
+        myMediaView = null;
+        bannerView = null;
         handleViewers.clear();
 
         //布局
@@ -786,7 +809,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
         picture.setRawPathList(paths);
 
-        final NewBannerView bannerView = new NewBannerView(this, picture, layout);
+        bannerView = new NewBannerView(this, picture, layout);
 
         RelativeLayout.LayoutParams lp1 = new RelativeLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
@@ -833,7 +856,14 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         for (ViewerCallback v : handleViewers) {
             v.viewerOnResume();
         }
+        isFront = true;
         super.onResume();
+    }
+
+    @Override
+    protected void onStop() {
+        isFront = false;
+        super.onStop();
     }
 
     @Override
@@ -874,6 +904,9 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         for (ViewerCallback v : handleViewers) {
             v.viewerOnDestroy();
         }
+        if(bannerView != null) bannerView = null;
+        if(newVideoPlayer != null)newVideoPlayer = null;
+        if(myMediaView != null)myMediaView = null;
         unbindService(serviceConnection);
         Intent intent = new Intent(getApplicationContext(), NettyService.class);
         stopService(intent);
@@ -942,6 +975,20 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                     });
                 }
 
+            } else {
+                for (int j = 0; j < materialListBeans.size(); j++) {
+                    try {
+                        Log.e(TAG, "播放素材id:" + playIds[0] + "总的素材id" + materialListBeans.get(j).getId());
+                        if (playIds[0].equals(materialListBeans.get(j).getId() + "")) {
+                            if (SDCardFileUtils.isFileExists(SDCardFileUtils.getWebviewRootDir(), materialListBeans.get(j).getName())) {
+                                //读文件播放
+                                Log.e("testlog","播放网页");
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             }
 
 
@@ -959,12 +1006,12 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
 
     //获取素材列表
-    private void getMaterialList() {
+    private void getMaterialList(final int instructionId) {
         Log.e(TAG, "IP地址：" + "http://" + SPUtil.getInstance().getString("ip", "") + "/exhibit-browser/pubPlayerController/materialList/");
         String ip = SPUtil.getInstance().getString("ip", "");
         String[] IP = ip.split(":");
 
-        Ok.post().url("http://" + IP[0] + ":9000/exhibit-browser/pubPlayerController/materialList/")
+        Ok.post().url("http://" + IP[0] + ":9000/exhibit-browser/public/pubPlayerController/materialList/")
                 .param("machine_code", HardwareUtils.getMachineCode())
                 .header("token", SPUtil.getInstance().getString("token", ""))
                 .build()
@@ -988,14 +1035,14 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
                             for (int i = 0; i < materialListBeans.size(); i++) {
 
-                                //0表示图片素材     1 表示视频素材
+                                //0表示图片素材     1 表示视频素材  2 网页素材
 
                                 final MaterialListBean materialListBean = materialListBeans.get(i);
                                 int type = materialListBean.getType();
                                 if (type == 0) {
 
                                     if (SDCardFileUtils.isFileExists(SDCardFileUtils.getPictureRootDir(), materialListBean.getName())) {
-
+                                        nettyService.sendDowloadResponse(instructionId, (long) materialListBean.getId(), "100%", "5");
                                     } else {
 
                                         String ip = SPUtil.getInstance().getString("ip", "");
@@ -1003,10 +1050,11 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                         //下载图片素材
                                         final String downurl = "http://" + IP[0] + ":9000" + "/exhibit-browser" + materialListBean.getPath();
                                         Log.e(TAG, "下载素材" + downurl);
+                                        nettyService.sendDowloadResponse(instructionId, (long) materialListBean.getId(), "0%", "4");
                                         fixedThreadPool.execute(new Runnable() {
                                             @Override
                                             public void run() {
-                                                download(downurl, SDCardFileUtils.getPictureRootDir(), "downloading" + materialListBean.getName());
+                                                download(downurl, SDCardFileUtils.getPictureRootDir(), "downloading" + materialListBean.getName(), materialListBean.getId(), instructionId);
                                             }
                                         });
 
@@ -1017,19 +1065,39 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                 } else if (type == 1) {
 
                                     if (SDCardFileUtils.isFileExists(SDCardFileUtils.getVideoRootDir(), materialListBean.getName())) {
-
+                                        nettyService.sendDowloadResponse(instructionId, (long) materialListBean.getId(), "100%", "5");
                                     } else {
 
                                         String ip = SPUtil.getInstance().getString("ip", "");
                                         String[] IP = ip.split(":");
                                         //下载视频素材
                                         final String downurl = "http://" + IP[0] + ":9000" + Constants.SERVER_IP + materialListBean.getPath();
-
+                                        nettyService.sendDowloadResponse(instructionId, (long) materialListBean.getId(), "0%", "4");
                                         fixedThreadPool.execute(new Runnable() {
                                             @Override
                                             public void run() {
                                                 String threadName = Thread.currentThread().getName();
-                                                download(downurl, SDCardFileUtils.getVideoRootDir(), "downloading" + materialListBean.getName());
+                                                download(downurl, SDCardFileUtils.getVideoRootDir(), "downloading" + materialListBean.getName(), materialListBean.getId(), instructionId);
+                                            }
+                                        });
+                                    }
+
+                                } else if (type == 2) {
+
+                                    if (SDCardFileUtils.isFileExists(SDCardFileUtils.getVideoRootDir(), materialListBean.getName())) {
+                                        nettyService.sendDowloadResponse(instructionId, (long) materialListBean.getId(), "100%", "5");
+                                    } else {
+
+                                        String ip = SPUtil.getInstance().getString("ip", "");
+                                        String[] IP = ip.split(":");
+                                        //下载视频素材
+                                        final String downurl = "http://" + IP[0] + ":9000" + Constants.SERVER_IP + materialListBean.getPath();
+                                        nettyService.sendDowloadResponse(instructionId, (long) materialListBean.getId(), "0%", "4");
+                                        fixedThreadPool.execute(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                String threadName = Thread.currentThread().getName();
+                                                download(downurl, SDCardFileUtils.getWebviewRootDir(), "downloading" + materialListBean.getName(), materialListBean.getId(), instructionId);
                                             }
                                         });
                                     }
@@ -1087,12 +1155,17 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                             }
                         }
 
+                        if(isFirstPlayDefault){
+                            getDefaultPlayList();
+                            isFirstPlayDefault = false;
+                        }
+
                     }
                 });
     }
 
 
-    private void download(String url, final String localpath, final String filename) {
+    private void download(String url, final String localpath, final String filename, final int metarialId, final int instructionId) {
 
         Ok.download().url(url)
                 .build()
@@ -1103,23 +1176,27 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
                         Log.e("TestDownload", "下载到进度：" + progress);
                     }
+
                     @Override
                     public void success(File file) {
 
                         String newname = filename.substring(11);
                         file.renameTo(new File(localpath, newname));
+                        nettyService.sendDowloadResponse(instructionId, (long) metarialId, "100%", "5");
                         Log.e("TestDownload", "下载成功：");
                     }
+
                     @Override
                     public void fail(Exception e) {
                         Log.e("TestDownload", "下载失败了：" + e.toString());
+                        nettyService.sendDowloadResponse(instructionId, (long) metarialId, "0%", "4");
                         final String failReason = e.toString();
                     }
                 });
     }
 
     private void liandongDownload(String url, final String localpath, final String filename, final int screenDeviceId) {
-        nettyService.sendLPCommandResponse(screenDeviceId,1);
+        nettyService.sendLPCommandResponse(screenDeviceId, 1);
         Ok.download().url(url)
                 .build()
                 .tag(MyApplication.getInstance().getApplicationContext())
@@ -1134,12 +1211,12 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                         Log.e("TestDownload", "下载成功：");
                         String newname = filename.substring(11);
                         file.renameTo(new File(localpath, newname));
-                        nettyService.sendLPCommandResponse(screenDeviceId,2);
+                        nettyService.sendLPCommandResponse(screenDeviceId, 2);
                         if (isLianping) {
                             currentLPVideoName = newname;
                             SPUtil.getInstance().saveString("liandongVideo", currentLPVideoName);
                             String path = SDCardFileUtils.getLiandongRootDir() + File.separator + newname;
-                            nettyService.sendLPCommandResponse(screenDeviceId,3);
+                            nettyService.sendLPCommandResponse(screenDeviceId, 3);
                             playLianVideo(path);
                             confirm(liandongIps);
                         }
@@ -1241,12 +1318,37 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
     }
 
+    private void getDefaultPlayList(){
+        String ip = SPUtil.getInstance().getString("ip", "");
+        String[] IP = ip.split(":");
+        Ok.get().url("http://" + IP[0] + ":9000/exhibit-browser/public/terminalMaterial/listByMac/" + HardwareUtils.getLocalMac())
+                .build()
+                .call(new JsonCallBack<DefaultPlayBean>()  {
+                    @Override
+                    public void fail(Exception e) {
+                        Log.e("nettyactivity","获取默认播放器列表失败");
+                    }
+
+                    @Override
+                    public void success(DefaultPlayBean defaultPlayBean) {
+
+                        DefaultPlayBean.BodyBean bodyBean = defaultPlayBean.getBody();
+                        if(bodyBean == null)return;
+                        String materialIds = bodyBean.getMaterialIds();
+                        String sourceType = bodyBean.getType();
+                        checkPlayList(materialIds, sourceType);
+
+                    }
+                });
+    }
+
+
     private void upload(String uploadType, final int instructId, String pathName) {
 
         String ip = SPUtil.getInstance().getString("ip", "");
         String[] IP = ip.split(":");
 
-        Ok.post().url("http://" + IP[0] + "9000/exhibit-browser/uploadSingle")
+        Ok.post().url("http://" + IP[0] + ":9000/exhibit-browser/public/uploadSingle")
                 .param("uploadType", uploadType)
                 .param("instructId", instructId)
                 .file("file", new File(pathName))
@@ -1302,7 +1404,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                         if (mySelfInnerIp.equals(liandongIps.get(i))) {
                             isGroupChild = true;
                         }
-                        Log.e("ipip","我的ip" + mySelfInnerIp + "子ip" + liandongIps.get(i));
+                        Log.e("ipip", "我的ip" + mySelfInnerIp + "子ip" + liandongIps.get(i));
                     }
 
                     if (myMainIp.equals(mySelfInnerIp)) {
@@ -1518,4 +1620,72 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
     }
 
+
+    private void deleteMetiarial(int instructionId, String materialIds) {
+        if (!TextUtils.isEmpty(materialIds)) {
+            String[] deleteIds = materialIds.split(",");
+            for (int i = 0; i < deleteIds.length; i++) {
+                for (int j = 0; j < materialListBeans.size(); j++) {
+                    try {
+                        Log.e(TAG, "删除素材id:" + deleteIds[i] + "总的素材id" + materialListBeans.get(j).getId());
+                        if (deleteIds[i].equals(materialListBeans.get(j).getId() + "")) {
+
+                            if (SDCardFileUtils.isFileExists(SDCardFileUtils.getPictureRootDir(), materialListBeans.get(j).getName())) {
+                                File f = new File(SDCardFileUtils.getPictureRootDir(), materialListBeans.get(j).getName());
+                                f.delete();
+                            }
+                            nettyService.sendDowloadResponse(instructionId, Long.parseLong(deleteIds[i]), "", "9");
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+
+    }
+
+    private boolean isFront;
+    private void movetoFront() {
+
+        if (!isRunningForeground(this)) {
+            //获取ActivityManager
+            ActivityManager mAm = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            //获得当前运行的task
+            List<ActivityManager.RunningTaskInfo> taskList = mAm.getRunningTasks(100);
+            for (ActivityManager.RunningTaskInfo rti : taskList) {
+                //找到当前应用的task，并启动task的栈顶activity，达到程序切换到前台
+                if (rti.topActivity.getPackageName().equals(getPackageName())) {
+                    mAm.moveTaskToFront(rti.id, 0);
+                    return;
+                }
+            }
+            //若没有找到运行的task，用户结束了task或被系统释放，则重新启动mainactivity
+            Intent resultIntent = new Intent(NettyActivity.this, NettyActivity.class);
+            resultIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(resultIntent);
+        }
+
+    }
+
+    public static boolean isRunningForeground(Context context) {
+        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningAppProcessInfo> appProcessInfos = activityManager.getRunningAppProcesses();
+        // 枚举进程
+        for (ActivityManager.RunningAppProcessInfo appProcessInfo : appProcessInfos) {
+            if (appProcessInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
+                if (appProcessInfo.processName.equals(context.getApplicationInfo().processName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void moveToBack(){
+        Intent intent=new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+        startActivity(intent);
+    }
 }
