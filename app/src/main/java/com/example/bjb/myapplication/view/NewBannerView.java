@@ -112,12 +112,13 @@ public class NewBannerView extends RelativeLayout implements ViewerCallback {
             @Override
             public void run() {
 
-                if(mViewPager.getCurrentItem() >= 600*mItemCount-1){
-                    mViewPager.setCurrentItem(20*mItemCount);
-                }else {
-                    mViewPager.setCurrentItem(mViewPager.getCurrentItem() + 1);
+                if(isCircle){
+                    if(mViewPager.getCurrentItem() >= 600*mItemCount-1){
+                        mViewPager.setCurrentItem(20*mItemCount);
+                    }else {
+                        mViewPager.setCurrentItem(mViewPager.getCurrentItem() + 1);
+                    }
                 }
-//                Log.e("player","当前条目"+mViewPager.getCurrentItem());
                 mHandler.postDelayed(mRunnable, mInterval*975);
             }
         };

@@ -10,6 +10,7 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.example.bjb.myapplication.MyApplication;
 import com.example.bjb.myapplication.activity.NettyActivity;
 import com.example.bjb.myapplication.socket.entity.CommandResponse;
 import com.example.bjb.myapplication.socket.entity.HeartbeatRequest;
@@ -85,8 +86,6 @@ public class NettyService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
-
         return super.onStartCommand(intent, flags, startId);
 
     }

@@ -85,18 +85,18 @@ public class SDCardFileUtils {
 
 
     //获取视频路径
-    public static String getVideoRootDir() {
+    public static String getVideoRootDir(Context context) {
 
-        File cacheDir = new File(getRootFile().getPath() + File.separator + PLAYER_ROOT_DIR + File.separator + "video");
+        File cacheDir = new File(context.getFilesDir() + File.separator + PLAYER_ROOT_DIR + File.separator + "video");
         if (!cacheDir.exists())
             cacheDir.mkdir();
         return cacheDir.getPath();
 
     }
     //获取视频路径
-    public static String getWebviewRootDir() {
+    public static String getWebviewRootDir(Context context) {
 
-        File cacheDir = new File(getRootFile().getPath() + File.separator + PLAYER_ROOT_DIR + File.separator + "web");
+        File cacheDir = new File(context.getFilesDir() + File.separator + PLAYER_ROOT_DIR + File.separator + "web");
         if (!cacheDir.exists())
             cacheDir.mkdir();
         return cacheDir.getPath();
@@ -105,8 +105,8 @@ public class SDCardFileUtils {
 
     //获取图片路径
 
-    public static String getPictureRootDir() {
-        File cacheDir = new File(getRootFile().getPath() + File.separator + PLAYER_ROOT_DIR + File.separator + "picture");
+    public static String getPictureRootDir(Context context) {
+        File cacheDir = new File(context.getFilesDir() + File.separator + PLAYER_ROOT_DIR + File.separator + "picture");
         if (!cacheDir.exists())
             cacheDir.mkdirs();
         return cacheDir.getPath();

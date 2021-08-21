@@ -1,11 +1,14 @@
 package com.example.bjb.myapplication.utils;
 
+import android.app.ActivityManager;
+import android.content.Context;
 import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
 import android.util.Log;
 
 
+import com.example.bjb.myapplication.MyApplication;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -18,6 +21,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -190,39 +194,46 @@ public class HardwareUtils {
         }
         return mac_s;
     }
-    //获取内存总大小
-    public static String getMemoryUsage() {
-        String str1 = "/proc/meminfo";// 系统内存信息文件
-        String str2;
-        String[] arrayOfString;
-        double usage = 0;
-        try {
-            FileReader localFileReader = new FileReader(str1);
-            BufferedReader localBufferedReader = new BufferedReader(localFileReader, 8192);
-            str2 = localBufferedReader.readLine();// 读取meminfo第一行，系统总内存大小MemTotal:
-            arrayOfString = str2.split("\\s+");
-            long memTotal = Integer.valueOf(arrayOfString[1]);
 
-            str2 = localBufferedReader.readLine();// 读取meminfo第二行 MemFree
-            arrayOfString = str2.split("\\s+");
-            long memFree = Integer.valueOf(arrayOfString[1]);
-
-            str2 = localBufferedReader.readLine();// 读取meminfo第三行 Buffers
-            arrayOfString = str2.split("\\s+");
-            long buffers = Integer.valueOf(arrayOfString[1]);
-
-            str2 = localBufferedReader.readLine();// 读取meminfo第四行 Cached
-            arrayOfString = str2.split("\\s+");
-            long cached = Integer.valueOf(arrayOfString[1]);
-            localBufferedReader.close();
-
-            usage = (double) (memTotal - memFree - buffers - cached) / memTotal;
-
-
-        } catch (IOException e) {
-        }
-        return new DecimalFormat("00%").format(usage);
+    //获取内存使用率
+    public static String getMemoryUsage(){
+        long total = getMemoryTotal();
+        long free = getMemoryFree();
+        double usage = (total - free)*100 / total;
+        BigDecimal b = new BigDecimal(usage);
+        return b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue() + "%";
     }
+
+    private static int getMemoryTotal() {
+        int total = 0;
+
+        try {
+            FileReader localFileReader = new FileReader("/proc/meminfo");
+            BufferedReader localBufferedReader = new BufferedReader(localFileReader, 8192);
+            String line = localBufferedReader.readLine() ;// 读取memInfo第一行: 系统总内存大小
+            String[] elements = line.split(" ");
+            localBufferedReader.close();
+            total = (int)(Double.parseDouble(elements[8]) / 1000.0);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return total;
+    }
+
+    private static long getMemoryFree(){
+        long memoryFree;
+        ActivityManager activityManager = (ActivityManager) MyApplication.getInstance().getSystemService(Context.ACTIVITY_SERVICE);
+        ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
+        activityManager.getMemoryInfo(memoryInfo);
+        memoryFree = (long) (memoryInfo.availMem / 1000.0 / 1000.0);
+        return memoryFree;
+    }
+
+
+
+
+
 
     //Sd卡占用情况
     public static String getSDCardUsage() {

@@ -18,6 +18,8 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -133,34 +135,36 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
     private boolean isLianping;
 
 
-    private Handler mHandler = new Handler() {
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case 1:
-                    String progress = (String) msg.obj;
-                    if (myMediaView != null && progress != null) {
-                        if (myMediaView.isPlaying()) {
-                            int current = myMediaView.getCurrentPosition();
+    private Handler mHandler = new Handler(new WeakReference<Handler.Callback>((Message msg)->{
+        switch (msg.what) {
+            case 1:
+                String progress = (String) msg.obj;
+                if (myMediaView != null && progress != null) {
+                    if (myMediaView.isPlaying()) {
+                        int current = myMediaView.getCurrentPosition();
 //                            if(Math.abs(Integer.parseInt(progress) - current) > 30){
-                            myMediaView.seekTo(Integer.parseInt(progress));
+                        myMediaView.seekTo(Integer.parseInt(progress));
 //                            }
 
 //                            myMediaView.seekTo(99333);
-                        }
                     }
-                    break;
-                default:
+                }
+                break;
+            default:
 
-                    break;
-            }
+                break;
         }
-    };
+        return false;
+    }).get());
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_netty);
+
         rl_content_main = findViewById(R.id.rl_content_main);
         fixedThreadPool = Executors.newFixedThreadPool(4);
 
@@ -983,8 +987,8 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                             Log.e(TAG, "播放素材id:" + playIds[i] + "总的素材id" + materialListBeans.get(j).getId());
                             if (playIds[i].equals(materialListBeans.get(j).getId() + "")) {
 
-                                if (SDCardFileUtils.isFileExists(SDCardFileUtils.getPictureRootDir(), materialListBeans.get(j).getName())) {
-                                    playPaths.add(SDCardFileUtils.getPictureRootDir() + File.separator + materialListBeans.get(j).getName());
+                                if (SDCardFileUtils.isFileExists(SDCardFileUtils.getPictureRootDir(NettyActivity.this), materialListBeans.get(j).getName())) {
+                                    playPaths.add(SDCardFileUtils.getPictureRootDir(NettyActivity.this) + File.separator + materialListBeans.get(j).getName());
                                 } else {
                                     //去下载或者默认不管
 
@@ -1016,8 +1020,8 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                     for (int j = 0; j < materialListBeans.size(); j++) {
                         if (playIds[i].equals(materialListBeans.get(j).getId() + "")) {
 
-                            if (SDCardFileUtils.isFileExists(SDCardFileUtils.getVideoRootDir(), materialListBeans.get(j).getName())) {
-                                playPaths.add(SDCardFileUtils.getVideoRootDir() + File.separator + materialListBeans.get(j).getName());
+                            if (SDCardFileUtils.isFileExists(SDCardFileUtils.getVideoRootDir(NettyActivity.this), materialListBeans.get(j).getName())) {
+                                playPaths.add(SDCardFileUtils.getVideoRootDir(NettyActivity.this) + File.separator + materialListBeans.get(j).getName());
                             } else {
                                 //去下载或者默认不管
 
@@ -1044,9 +1048,9 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                     try {
                         Log.e(TAG, "播放素材id:" + playIds[0] + "总的素材id" + materialListBeans.get(j).getId());
                         if (playIds[0].equals(materialListBeans.get(j).getId() + "")) {
-                            if (SDCardFileUtils.isFileExists(SDCardFileUtils.getWebviewRootDir(), materialListBeans.get(j).getName())) {
+                            if (SDCardFileUtils.isFileExists(SDCardFileUtils.getWebviewRootDir(NettyActivity.this), materialListBeans.get(j).getName())) {
                                 //读文件播放
-                                File file = new File(SDCardFileUtils.getWebviewRootDir(), materialListBeans.get(j).getName());
+                                File file = new File(SDCardFileUtils.getWebviewRootDir(NettyActivity.this), materialListBeans.get(j).getName());
                                 String url = FileUtils.readTxtFile(file);
                                 Log.e(TAG,"播放网页地址为:"+ url);
                                 playWebItem(url);
@@ -1102,7 +1106,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                 int type = materialListBean.getType();
                                 if (type == 0) {
 
-                                    if (SDCardFileUtils.isFileExists(SDCardFileUtils.getPictureRootDir(), materialListBean.getName())) {
+                                    if (SDCardFileUtils.isFileExists(SDCardFileUtils.getPictureRootDir(NettyActivity.this), materialListBean.getName())) {
                                         nettyService.sendDowloadResponse(instructionId, (long) materialListBean.getId(), "100%", "5");
                                     } else {
 
@@ -1115,7 +1119,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                         fixedThreadPool.execute(new Runnable() {
                                             @Override
                                             public void run() {
-                                                download(downurl, SDCardFileUtils.getPictureRootDir(), "downloading" + materialListBean.getName(), materialListBean.getId(), instructionId);
+                                                download(downurl, SDCardFileUtils.getPictureRootDir(NettyActivity.this), "downloading" + materialListBean.getName(), materialListBean.getId(), instructionId);
                                             }
                                         });
 
@@ -1125,7 +1129,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
                                 } else if (type == 1) {
 
-                                    if (SDCardFileUtils.isFileExists(SDCardFileUtils.getVideoRootDir(), materialListBean.getName())) {
+                                    if (SDCardFileUtils.isFileExists(SDCardFileUtils.getVideoRootDir(NettyActivity.this), materialListBean.getName())) {
                                         nettyService.sendDowloadResponse(instructionId, (long) materialListBean.getId(), "100%", "5");
                                     } else {
 
@@ -1138,14 +1142,14 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                             @Override
                                             public void run() {
                                                 String threadName = Thread.currentThread().getName();
-                                                download(downurl, SDCardFileUtils.getVideoRootDir(), "downloading" + materialListBean.getName(), materialListBean.getId(), instructionId);
+                                                download(downurl, SDCardFileUtils.getVideoRootDir(NettyActivity.this), "downloading" + materialListBean.getName(), materialListBean.getId(), instructionId);
                                             }
                                         });
                                     }
 
                                 } else if (type == 2) {
 
-                                    if (SDCardFileUtils.isFileExists(SDCardFileUtils.getVideoRootDir(), materialListBean.getName())) {
+                                    if (SDCardFileUtils.isFileExists(SDCardFileUtils.getVideoRootDir(NettyActivity.this), materialListBean.getName())) {
                                         nettyService.sendDowloadResponse(instructionId, (long) materialListBean.getId(), "100%", "5");
                                     } else {
 
@@ -1158,7 +1162,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                             @Override
                                             public void run() {
                                                 String threadName = Thread.currentThread().getName();
-                                                download(downurl, SDCardFileUtils.getWebviewRootDir(), "downloading" + materialListBean.getName(), materialListBean.getId(), instructionId);
+                                                download(downurl, SDCardFileUtils.getWebviewRootDir(NettyActivity.this), "downloading" + materialListBean.getName(), materialListBean.getId(), instructionId);
                                             }
                                         });
                                     }
@@ -1170,7 +1174,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
                             //本地有的而素材列表没有的要遍历删除
 
-                            File picfile = new File(SDCardFileUtils.getPictureRootDir());
+                            File picfile = new File(SDCardFileUtils.getPictureRootDir(NettyActivity.this));
                             File[] picFiles = picfile.listFiles();
                             if (picFiles != null) {
                                 for (int i = 0; i < picFiles.length; i++) {
@@ -1193,7 +1197,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                             }
 
 
-                            File videofile = new File(SDCardFileUtils.getVideoRootDir());
+                            File videofile = new File(SDCardFileUtils.getVideoRootDir(NettyActivity.this));
                             File[] videofiles = videofile.listFiles();
 
                             if (videofiles != null) {
@@ -1382,6 +1386,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
     private void getDefaultPlayList(){
         String ip = SPUtil.getInstance().getString("ip", "");
         String[] IP = ip.split(":");
+
         Ok.get().url("http://" + IP[0] + ":9000/exhibit-browser/public/terminalMaterial/listByMac/" + HardwareUtils.getLocalMac())
                 .build()
                 .call(new JsonCallBack<DefaultPlayBean>()  {
@@ -1392,7 +1397,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
                     @Override
                     public void success(DefaultPlayBean defaultPlayBean) {
-
+                        Log.e(TAG,"获取默认播放列表" + defaultPlayBean.toString());
                         DefaultPlayBean.BodyBean bodyBean = defaultPlayBean.getBody();
                         if(bodyBean == null)return;
                         String materialIds = bodyBean.getMaterialIds();
@@ -1691,8 +1696,8 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                         Log.e(TAG, "删除素材id:" + deleteIds[i] + "总的素材id" + materialListBeans.get(j).getId());
                         if (deleteIds[i].equals(materialListBeans.get(j).getId() + "")) {
 
-                            if (SDCardFileUtils.isFileExists(SDCardFileUtils.getPictureRootDir(), materialListBeans.get(j).getName())) {
-                                File f = new File(SDCardFileUtils.getPictureRootDir(), materialListBeans.get(j).getName());
+                            if (SDCardFileUtils.isFileExists(SDCardFileUtils.getPictureRootDir(NettyActivity.this), materialListBeans.get(j).getName())) {
+                                File f = new File(SDCardFileUtils.getPictureRootDir(NettyActivity.this), materialListBeans.get(j).getName());
                                 f.delete();
                             }
                             nettyService.sendDowloadResponse(instructionId, Long.parseLong(deleteIds[i]), "", "9");

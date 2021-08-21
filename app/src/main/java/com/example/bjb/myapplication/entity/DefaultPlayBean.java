@@ -36,6 +36,15 @@ public class DefaultPlayBean {
         this.body = body;
     }
 
+    @Override
+    public String toString() {
+        return "DefaultPlayBean{" +
+                "code=" + code +
+                ", message='" + message + '\'' +
+                ", body=" + body +
+                '}';
+    }
+
     public static class BodyBean {
         private String materialIds;
         private String type;
@@ -54,6 +63,14 @@ public class DefaultPlayBean {
 
         public void setType(String type) {
             this.type = type;
+        }
+
+        @Override
+        public String toString() {
+            return "BodyBean{" +
+                    "materialIds='" + materialIds + '\'' +
+                    ", type='" + type + '\'' +
+                    '}';
         }
     }
 }
