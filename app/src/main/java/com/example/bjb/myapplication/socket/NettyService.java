@@ -10,13 +10,10 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.example.bjb.myapplication.MyApplication;
 import com.example.bjb.myapplication.activity.NettyActivity;
 import com.example.bjb.myapplication.socket.entity.CommandResponse;
 import com.example.bjb.myapplication.socket.entity.HeartbeatRequest;
 import com.example.bjb.myapplication.socket.entity.LPCommandResponse;
-import com.example.bjb.myapplication.socket.entity.LoginRequest;
-import com.example.bjb.myapplication.socket.handler.DecoderHandler;
 import com.example.bjb.myapplication.socket.handler.IODisposeHandler;
 import com.example.bjb.myapplication.socket.handler.MyEncoder;
 import com.example.bjb.myapplication.socket.handler.MyProtocolBean;
@@ -26,8 +23,6 @@ import com.example.bjb.myapplication.utils.SPUtil;
 import com.google.gson.Gson;
 
 
-import java.util.Timer;
-import java.util.TimerTask;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -43,10 +38,7 @@ public class NettyService extends Service {
 
 
     private static final String TAG = "NettyService";
-    private Timer timer = new Timer();
-    ;
 
-    private TimerTask timerTask;
 
 
     private Handler handler = new Handler(Looper.getMainLooper());
@@ -70,11 +62,8 @@ public class NettyService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-
         ip = intent.getStringExtra("ip");
         port = intent.getStringExtra("port");
-
-
         return socketBinder;
     }
 
@@ -122,6 +111,7 @@ public class NettyService extends Service {
                                 try {
                                     if (onMessageListener != null) {
                                          onMessageListener.getMessage(msg);
+                                        Log.e(TAG,"消息" + msg.toString());
                                     }
                                 }catch (Exception e){
                                     Log.e(TAG,"错误" + e.toString());
@@ -137,6 +127,7 @@ public class NettyService extends Service {
                                 if (onMessageListener != null) {
                                     onMessageListener.sendMsg("断开连接" );
                                 }
+                                Log.e(TAG,"错误111");
 //                                initNetty();
 
                             }
@@ -200,7 +191,6 @@ public class NettyService extends Service {
 
     }
 
-    //发送下载成功响应
 
 
     //发送指令响应
@@ -266,26 +256,12 @@ public class NettyService extends Service {
     }
 
 
-    private void release() {
 
-        if (timerTask != null) {
-            timerTask.cancel();
-            timerTask = null;
-        }
-
-        if (timer != null) {
-            timer.purge();
-            timer.cancel();
-            timer = null;
-        }
-
-    }
 
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        release();
         if(IODisposeHandler.channel != null){
             IODisposeHandler.channel.close();
             IODisposeHandler.channel = null;

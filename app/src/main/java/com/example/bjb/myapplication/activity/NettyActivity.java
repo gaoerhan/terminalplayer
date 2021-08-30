@@ -40,6 +40,9 @@ import com.example.bjb.myapplication.httputils.Ok;
 import com.example.bjb.myapplication.httputils.callback.CallBack;
 import com.example.bjb.myapplication.httputils.callback.FileCallBack;
 import com.example.bjb.myapplication.httputils.callback.JsonCallBack;
+import com.example.bjb.myapplication.net.NetStateChangeObserver;
+import com.example.bjb.myapplication.net.NetStateChangeReceiver;
+import com.example.bjb.myapplication.net.NetworkType;
 import com.example.bjb.myapplication.socket.NettyService;
 import com.example.bjb.myapplication.socket.entity.CommandReceive;
 import com.example.bjb.myapplication.socket.entity.HeartbeatResponse;
@@ -77,7 +80,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class NettyActivity extends Activity implements View.OnClickListener, INotifyListener {
+public class NettyActivity extends Activity implements View.OnClickListener, INotifyListener, NetStateChangeObserver {
 
     public static final String TAG = "nettyactivity";
 
@@ -134,8 +137,9 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
     private boolean isLianping;
 
+    private int reloginCount = 0;
 
-    private Handler mHandler = new Handler(new WeakReference<Handler.Callback>((Message msg)->{
+    private Handler mHandler = new Handler(new WeakReference<Handler.Callback>((Message msg) -> {
         switch (msg.what) {
             case 1:
                 String progress = (String) msg.obj;
@@ -145,7 +149,6 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 //                            if(Math.abs(Integer.parseInt(progress) - current) > 30){
                         myMediaView.seekTo(Integer.parseInt(progress));
 //                            }
-
 //                            myMediaView.seekTo(99333);
                     }
                 }
@@ -161,6 +164,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        NetStateChangeReceiver.registerReceiver(this);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_netty);
@@ -205,17 +209,6 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
             }
         });
 
-        backDialog = new SimpleDialog(NettyActivity.this, "是否退出登录", true);
-        backDialog.setCancelable(false);
-        backDialog.setCanceledOnTouchOutside(false);
-        backDialog.setOnSimpleConfirmListener(new SimpleDialog.OnSimpleConfirmListener() {
-            @Override
-            public void setSimpleConfirm() {
-                Intent intent2 = new Intent(NettyActivity.this, StartActivity.class);
-                startActivity(intent2);
-                finish();
-            }
-        });
 
         mySelfInnerIp = IPUtils.getLocalIpAddress();
         Log.e(TAG, "获取内网ip:" + mySelfInnerIp);
@@ -226,6 +219,12 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
     }
 
+    private Runnable reloginTask = new Runnable() {
+        @Override
+        public void run() {
+            nettyService.initNetty();
+        }
+    };
 
     private void binderSocketService() {
 
@@ -247,12 +246,17 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                             if (code == 1) {
                                 SPUtil.getInstance().saveString("token", loginResponse.getToken());
                                 isHearting = true;
+                                handler.removeCallbacks(reloginTask);
+                                reloginCount = 0;
                                 toastMsg("登录成功");
                             } else {
                                 isHearting = false;
                                 toastMsg("登录错误信息" + loginResponse.getMsg());
-                                //弹窗重新登录
-                                simpleDialog.show();
+                                if (reloginCount < 4) {
+                                    handler.postDelayed(reloginTask, 2000);
+                                    reloginCount++;
+                                }
+
                             }
 
                             //指令请求
@@ -320,7 +324,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
                                     //开始轮播
                                 } else if ("A006-12".equals(instructionCode)) {
-                                    if(!isFront)movetoFront();
+                                    if (!isFront) movetoFront();
                                     if (newVideoPlayer != null)
                                         newVideoPlayer.setCircleplay();
 //                                    if (isLianping) {
@@ -346,7 +350,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     if (newVideoPlayer != null)
                                         newVideoPlayer.stopCircleplay();
                                     //图片停止轮播
-                                    if(bannerView != null){
+                                    if (bannerView != null) {
                                         bannerView.stopCircle();
                                     }
 
@@ -380,7 +384,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     if (newVideoPlayer != null)
                                         newVideoPlayer.pausePlay();
 
-                                    if(bannerView != null){
+                                    if (bannerView != null) {
                                         bannerView.stopCircle();
                                     }
                                     moveToBack();
@@ -483,7 +487,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                         playLianVideo(path);
                                     }
                                 });
-                                confirm(liandongIps);
+//                                confirm(liandongIps);
                             } else {
 
                                 runOnUiThread(new Runnable() {
@@ -512,19 +516,14 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                     @Override
                     public void sendMsg(final String msg) {
 
-                        if (msg.contains("无法连接")) {
-                            toastMsg(msg);
-                            //弹窗重新登录
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    simpleDialog.show();
-                                }
-                            });
-
-                        } else {
-                            toastMsg(msg);
+                        toastMsg(msg);
+                        //弹窗重新登录
+                        isHearting = false;
+                        if (reloginCount < 4) {
+                            handler.postDelayed(reloginTask, 2000);
+                            reloginCount++;
                         }
+
                     }
                 });
                 nettyService.initNetty();
@@ -583,7 +582,6 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
     protected void onStart() {
         super.onStart();
 
-
     }
 
 
@@ -591,9 +589,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
     public void onClick(View view) {
 
         switch (view.getId()) {
-
             default:
-
                 break;
         }
 
@@ -607,7 +603,6 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-
                         Toast.makeText(NettyActivity.this, obj.str, Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -802,7 +797,6 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         int heightPixels = outMetrics.heightPixels;
 
         for (int i = 0; i < paths.size(); i++) {
-
             Log.e(TAG, "图片路径" + paths.get(i));
         }
         newVideoPlayer = null;
@@ -855,7 +849,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
     }
 
 
-    private void playWebItem(String url){
+    private void playWebItem(String url) {
         for (ViewerCallback v : handleViewers) {
             v.viewerOnPause(true);
             v.viewerOnDestroy();
@@ -871,7 +865,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         final RelativeLayout layout = new RelativeLayout(this);
         layout.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        webShower = new WebShower(NettyActivity.this,url);
+        webShower = new WebShower(NettyActivity.this, url);
 
         RelativeLayout.LayoutParams lp1 = new RelativeLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
@@ -901,8 +895,10 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
             }
         }
     }
+
     @Override
     protected void onPause() {
+        NetStateChangeReceiver.unRegisterObserver(this);
         for (ViewerCallback v : handleViewers) {
             v.viewerOnPause(isFinishing());
         }
@@ -913,6 +909,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
     @Override
     protected void onResume() {
+        NetStateChangeReceiver.registerObserver(this);
         for (ViewerCallback v : handleViewers) {
             v.viewerOnResume();
         }
@@ -929,6 +926,9 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (backDialog != null && backDialog.isShowing()) backDialog.dismiss();
+        NetStateChangeReceiver.unRegisterReceiver(this);
+        handler.removeCallbacks(reloginTask);
         isHearting = false;
         isAccepting = false;
         fixedThreadPool.shutdown();
@@ -964,9 +964,9 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         for (ViewerCallback v : handleViewers) {
             v.viewerOnDestroy();
         }
-        if(bannerView != null) bannerView = null;
-        if(newVideoPlayer != null)newVideoPlayer = null;
-        if(myMediaView != null)myMediaView = null;
+        if (bannerView != null) bannerView = null;
+        if (newVideoPlayer != null) newVideoPlayer = null;
+        if (myMediaView != null) myMediaView = null;
         unbindService(serviceConnection);
         Intent intent = new Intent(getApplicationContext(), NettyService.class);
         stopService(intent);
@@ -1052,7 +1052,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                 //读文件播放
                                 File file = new File(SDCardFileUtils.getWebviewRootDir(NettyActivity.this), materialListBeans.get(j).getName());
                                 String url = FileUtils.readTxtFile(file);
-                                Log.e(TAG,"播放网页地址为:"+ url);
+                                Log.e(TAG, "播放网页地址为:" + url);
                                 playWebItem(url);
                             }
                         }
@@ -1061,9 +1061,6 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                     }
                 }
             }
-
-
-
 
         }
 
@@ -1220,7 +1217,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                             }
                         }
 
-                        if(isFirstPlayDefault){
+                        if (isFirstPlayDefault) {
                             getDefaultPlayList();
                             isFirstPlayDefault = false;
                         }
@@ -1283,7 +1280,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                             String path = SDCardFileUtils.getLiandongRootDir() + File.separator + newname;
                             nettyService.sendLPCommandResponse(screenDeviceId, 3);
                             playLianVideo(path);
-                            confirm(liandongIps);
+//                            confirm(liandongIps);
                         }
 
                     }
@@ -1383,23 +1380,23 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
     }
 
-    private void getDefaultPlayList(){
+    private void getDefaultPlayList() {
         String ip = SPUtil.getInstance().getString("ip", "");
         String[] IP = ip.split(":");
 
         Ok.get().url("http://" + IP[0] + ":9000/exhibit-browser/public/terminalMaterial/listByMac/" + HardwareUtils.getLocalMac())
                 .build()
-                .call(new JsonCallBack<DefaultPlayBean>()  {
+                .call(new JsonCallBack<DefaultPlayBean>() {
                     @Override
                     public void fail(Exception e) {
-                        Log.e("nettyactivity","获取默认播放器列表失败");
+                        Log.e("nettyactivity", "获取默认播放器列表失败");
                     }
 
                     @Override
                     public void success(DefaultPlayBean defaultPlayBean) {
-                        Log.e(TAG,"获取默认播放列表" + defaultPlayBean.toString());
+                        Log.e(TAG, "获取默认播放列表" + defaultPlayBean.toString());
                         DefaultPlayBean.BodyBean bodyBean = defaultPlayBean.getBody();
-                        if(bodyBean == null)return;
+                        if (bodyBean == null) return;
                         String materialIds = bodyBean.getMaterialIds();
                         String sourceType = bodyBean.getType();
                         checkPlayList(materialIds, sourceType);
@@ -1439,7 +1436,19 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
+            backDialog = new SimpleDialog(NettyActivity.this, "是否退出登录", true);
+            backDialog.setCancelable(false);
+            backDialog.setCanceledOnTouchOutside(false);
+            backDialog.setOnSimpleConfirmListener(new SimpleDialog.OnSimpleConfirmListener() {
+                @Override
+                public void setSimpleConfirm() {
+                    Intent intent2 = new Intent(NettyActivity.this, StartActivity.class);
+                    startActivity(intent2);
+                    finish();
+                }
+            });
             backDialog.show();
+            return true;
         }
         return super.onKeyDown(keyCode, event);
     }
@@ -1608,6 +1617,19 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         }.start();
     }
 
+    @Override
+    public void onNetDisconnected() {
+
+    }
+
+    @Override
+    public void onNetConnected(NetworkType networkType) {
+        reloginCount = 2;
+        handler.postDelayed(reloginTask, 1000);
+        Log.e(TAG,"重连中");
+    }
+
+
     class UpdateProgressTask extends TimerTask {
         String mMainIp;
 
@@ -1713,6 +1735,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
     }
 
     private boolean isFront;
+
     private void movetoFront() {
 
         if (!isRunningForeground(this)) {
@@ -1749,8 +1772,8 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
         return false;
     }
 
-    private void moveToBack(){
-        Intent intent=new Intent(Intent.ACTION_MAIN);
+    private void moveToBack() {
+        Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_HOME);
         startActivity(intent);
     }
