@@ -272,11 +272,11 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
 
                                 //关机
                                 if ("A006-02".equals(instructionCode)) {
-                                    MyApplication.getInstance().setPowerOff();
+//                                    MyApplication.getInstance().setPowerOff();
                                     nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
                                     //重启
                                 } else if ("A006-03".equals(instructionCode)) {
-                                    MyApplication.getInstance().reboot();
+//                                    MyApplication.getInstance().reboot();
                                     nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
                                     //截屏
                                 } else if ("A006-06".equals(instructionCode)) {
@@ -425,30 +425,34 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     materialIds = deviceInstructionListBeans.get(i).getValue();
                                     Log.e(TAG, "删除素材：" + materialIds);
                                     deleteMetiarial(deviceInstructionListBeans.get(i).getInstructionId(), materialIds);
-                                } else if ("A006-22".equals(instructionCode)) {
+                                } else if("A006-22".equals(instructionCode)){
+                                    MyApplication.getInstance().mute();
+                                } else if("A006-22".equals(instructionCode)){
+                                    MyApplication.getInstance().unMute();
+                                } else if ("A006-25".equals(instructionCode)) {
 
-                                    if (myMediaView != null) {
-                                        if (myMediaView.isPlaying()) {
-                                            myMediaView.pause();
-                                        }
-                                    }
-
-                                    String original = SPUtil.getInstance().getString("liandongVideo", "");
-                                    if (!TextUtils.isEmpty(original)) {
-                                        File file1 = new File(SDCardFileUtils.getLiandongRootDir() + File.separator + original);
-                                        if (file1 != null && file1.exists()) {
-                                            file1.delete();
-                                        }
-                                        SPUtil.getInstance().saveString("liandongVideo", "");
-                                    }
-                                    runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            playPic();
-                                        }
-                                    });
-                                    nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
-                                    //更新同步组指令 A006-19播放/A006-20暂停/A006-22停止 / type = 9素材下发
+//                                    if (myMediaView != null) {
+//                                        if (myMediaView.isPlaying()) {
+//                                            myMediaView.pause();
+//                                        }
+//                                    }
+//
+//                                    String original = SPUtil.getInstance().getString("liandongVideo", "");
+//                                    if (!TextUtils.isEmpty(original)) {
+//                                        File file1 = new File(SDCardFileUtils.getLiandongRootDir() + File.separator + original);
+//                                        if (file1 != null && file1.exists()) {
+//                                            file1.delete();
+//                                        }
+//                                        SPUtil.getInstance().saveString("liandongVideo", "");
+//                                    }
+//                                    runOnUiThread(new Runnable() {
+//                                        @Override
+//                                        public void run() {
+//                                            playPic();
+//                                        }
+//                                    });
+//                                    nettyService.sendCommandResponse(deviceInstructionListBeans.get(i).getInstructionId(), "1");
+//                                    //更新同步组指令 A006-19播放/A006-20暂停/A006-22停止 / type = 9素材下发
                                 }
 
                             }

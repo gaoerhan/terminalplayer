@@ -104,6 +104,14 @@ public class MyApplication extends Application {
         am.adjustStreamVolume (AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI);
     }
 
+
+    public void mute(){
+        am.adjustStreamVolume (AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
+    }
+
+    public void unMute(){
+        am.adjustStreamVolume (AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
+    }
     /**
      * 关闭电源
      */
