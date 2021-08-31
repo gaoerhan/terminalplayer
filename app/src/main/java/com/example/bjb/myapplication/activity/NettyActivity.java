@@ -426,9 +426,9 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                                     Log.e(TAG, "删除素材：" + materialIds);
                                     deleteMetiarial(deviceInstructionListBeans.get(i).getInstructionId(), materialIds);
                                 } else if("A006-22".equals(instructionCode)){
-                                    MyApplication.getInstance().mute();
-                                } else if("A006-22".equals(instructionCode)){
-                                    MyApplication.getInstance().unMute();
+//                                    MyApplication.getInstance().mute();
+                                } else if("A006-23".equals(instructionCode)){
+//                                    MyApplication.getInstance().unMute();
                                 } else if ("A006-25".equals(instructionCode)) {
 
 //                                    if (myMediaView != null) {
@@ -475,45 +475,45 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                             }
                             //轮播联播任务
                         } else if (type == 9) {
-                            final LiandongReceive liandongReceive = new Gson().fromJson(msg.getContent(), LiandongReceive.class);
-                            liandongIps = liandongReceive.getDevices();
-                            isLianping = true;
-                            SPUtil.getInstance().saveString("isLianping", "true");
-                            if (SDCardFileUtils.isFileExists(SDCardFileUtils.getLiandongRootDir(), liandongReceive.getName())) {
-                                currentLPVideoName = liandongReceive.getName();
-                                SPUtil.getInstance().saveString("liandongVideo", currentLPVideoName);
-                                final String path = SDCardFileUtils.getLiandongRootDir() + File.separator + liandongReceive.getName();
-                                //播放
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        nettyService.sendLPCommandResponse(liandongReceive.getScreenDeviceId(), 3);
-                                        playLianVideo(path);
-                                    }
-                                });
-//                                confirm(liandongIps);
-                            } else {
-
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        playPic();
-                                    }
-                                });
-                                //下载
-                                String ip = SPUtil.getInstance().getString("ip", "");
-                                String[] IP = ip.split(":");
-                                //下载图片素材
-                                final String downurl = "http://" + IP[0] + ":9000" + "/exhibit-browser" + liandongReceive.getPath();
-                                Log.e(TAG, "下载素材" + downurl);
-                                fixedThreadPool.execute(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        liandongDownload(downurl, SDCardFileUtils.getLiandongRootDir(),
-                                                "downloading" + liandongReceive.getName(), liandongReceive.getScreenDeviceId());
-                                    }
-                                });
-                            }
+//                            final LiandongReceive liandongReceive = new Gson().fromJson(msg.getContent(), LiandongReceive.class);
+//                            liandongIps = liandongReceive.getDevices();
+//                            isLianping = true;
+//                            SPUtil.getInstance().saveString("isLianping", "true");
+//                            if (SDCardFileUtils.isFileExists(SDCardFileUtils.getLiandongRootDir(), liandongReceive.getName())) {
+//                                currentLPVideoName = liandongReceive.getName();
+//                                SPUtil.getInstance().saveString("liandongVideo", currentLPVideoName);
+//                                final String path = SDCardFileUtils.getLiandongRootDir() + File.separator + liandongReceive.getName();
+//                                //播放
+//                                runOnUiThread(new Runnable() {
+//                                    @Override
+//                                    public void run() {
+//                                        nettyService.sendLPCommandResponse(liandongReceive.getScreenDeviceId(), 3);
+//                                        playLianVideo(path);
+//                                    }
+//                                });
+////                                confirm(liandongIps);
+//                            } else {
+//
+//                                runOnUiThread(new Runnable() {
+//                                    @Override
+//                                    public void run() {
+//                                        playPic();
+//                                    }
+//                                });
+//                                //下载
+//                                String ip = SPUtil.getInstance().getString("ip", "");
+//                                String[] IP = ip.split(":");
+//                                //下载图片素材
+//                                final String downurl = "http://" + IP[0] + ":9000" + "/exhibit-browser" + liandongReceive.getPath();
+//                                Log.e(TAG, "下载素材" + downurl);
+//                                fixedThreadPool.execute(new Runnable() {
+//                                    @Override
+//                                    public void run() {
+//                                        liandongDownload(downurl, SDCardFileUtils.getLiandongRootDir(),
+//                                                "downloading" + liandongReceive.getName(), liandongReceive.getScreenDeviceId());
+//                                    }
+//                                });
+//                            }
                         }
                     }
 
