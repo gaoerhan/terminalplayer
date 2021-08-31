@@ -252,7 +252,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                             } else {
                                 isHearting = false;
                                 toastMsg("登录错误信息" + loginResponse.getMsg());
-                                if (reloginCount < 4) {
+                                if (reloginCount < 20) {
                                     handler.postDelayed(reloginTask, 2000);
                                     reloginCount++;
                                 }
@@ -523,7 +523,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                         toastMsg(msg);
                         //弹窗重新登录
                         isHearting = false;
-                        if (reloginCount < 4) {
+                        if (reloginCount < 20) {
                             handler.postDelayed(reloginTask, 2000);
                             reloginCount++;
                         }
@@ -1084,6 +1084,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                 .call(new JsonCallBack<String>() {
                     @Override
                     public void fail(final Exception e) {
+                        getMaterialList(instructionId);
                         Log.e(TAG, "获取素材列表报错：" + e.toString());
                     }
 
@@ -1393,6 +1394,7 @@ public class NettyActivity extends Activity implements View.OnClickListener, INo
                 .call(new JsonCallBack<DefaultPlayBean>() {
                     @Override
                     public void fail(Exception e) {
+                        getDefaultPlayList();
                         Log.e("nettyactivity", "获取默认播放器列表失败");
                     }
 
